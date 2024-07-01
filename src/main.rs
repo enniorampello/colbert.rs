@@ -1,4 +1,6 @@
 use rand::Rng;
+use std::fmt::Display;
+use std::ops::{Add, Div, Mul, Sub};
 
 #[derive(Debug)]
 struct Matrix {
@@ -12,7 +14,7 @@ struct SizeError {
     message: String,
 }
 
-impl std::fmt::Display for Matrix {
+impl Display for Matrix {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut output = String::new();
 
@@ -28,7 +30,35 @@ impl std::fmt::Display for Matrix {
     }
 }
 
-pub fn vec_mul(v1: Vec<f32>, v2: Vec<f32>) -> f32 {
+impl<'a, 'b> Add<&'b Matrix> for &'a Matrix {
+    type Output = Matrix;
+
+    fn add(self, rhs: &'b Matrix) -> Matrix {
+        if self.dims.0 != rhs.dims.0 {
+            panic!(
+                "Size mismatch during addition. {} != {}.",
+                self.dims.0, rhs.dims.0
+            );
+        } else if self.dims.1 != rhs.dims.1 {
+            panic!(
+                "Size mismatch during addition. {} != {}.",
+                self.dims.1, rhs.dims.1
+            );
+        }
+
+        let mut added = vec![0f32; self.dims.0 * self.dims.1];
+        for i in 0..(self.dims.0 * self.dims.1) {
+            added[i] = self.data[i] + rhs.data[i];
+        } // TODO: use iterator instead of for loop
+
+        Matrix {
+            dims: (self.dims.0, self.dims.1),
+            data: added,
+        }
+    }
+}
+
+pub fn dot(v1: Vec<f32>, v2: Vec<f32>) -> f32 {
     let mut result = 0f32;
 
     if v1.len() != v2.len() {
@@ -48,9 +78,9 @@ pub fn vec_mul(v1: Vec<f32>, v2: Vec<f32>) -> f32 {
 
 impl Matrix {
     pub fn new(rows: usize, cols: usize) -> Self {
-        Matrix {
+        Self {
             dims: (rows, cols),
-            data: vec![0f32; rows * cols],
+            data: vec![1f32; rows * cols],
         }
     }
 
@@ -77,11 +107,12 @@ impl Matrix {
                 self.dims.1, other.dims.0
             );
         }
+
         let mut result = Matrix::new(self.dims.0, other.dims.1);
 
         for i in 0..self.dims.0 {
             for j in 0..other.dims.1 {
-                result.data[i * other.dims.1 + j] = vec_mul(
+                result.data[i * other.dims.1 + j] = dot(
                     self.data[i * self.dims.1..(i + 1) * self.dims.1].to_vec(),
                     other
                         .data
@@ -112,13 +143,15 @@ impl Matrix {
 
 fn main() {
     let mut a = Matrix::new(3, 2);
+    let b = Matrix::new(3, 2);
+
     a.init_uniform(-1.0, 1.0);
 
-    let c = a.transpose();
+    let c = &a + &b;
 
-    let d = a.mul(&c);
+    // let d = a.mul(&c);
 
     print!("{}", a);
+    print!("{}", b);
     print!("{}", c);
-    print!("{}", d);
 }
