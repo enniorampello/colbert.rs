@@ -14,6 +14,13 @@ struct SizeError {
     message: String,
 }
 
+enum MatrixOp {
+    Add,
+    Sub,
+    Mul,
+    Div,
+}
+
 impl Display for Matrix {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         let mut output = String::new();
@@ -34,27 +41,31 @@ impl<'a, 'b> Add<&'b Matrix> for &'a Matrix {
     type Output = Matrix;
 
     fn add(self, rhs: &'b Matrix) -> Matrix {
-        if self.dims.0 != rhs.dims.0 {
-            panic!(
-                "Size mismatch during addition. {} != {}.",
-                self.dims.0, rhs.dims.0
-            );
-        } else if self.dims.1 != rhs.dims.1 {
-            panic!(
-                "Size mismatch during addition. {} != {}.",
-                self.dims.1, rhs.dims.1
-            );
-        }
+        self.broadcast_op(rhs, MatrixOp::Add)
+    }
+}
 
-        let mut added = vec![0f32; self.dims.0 * self.dims.1];
-        for i in 0..(self.dims.0 * self.dims.1) {
-            added[i] = self.data[i] + rhs.data[i];
-        } // TODO: use iterator instead of for loop
+impl<'a, 'b> Sub<&'b Matrix> for &'a Matrix {
+    type Output = Matrix;
 
-        Matrix {
-            dims: (self.dims.0, self.dims.1),
-            data: added,
-        }
+    fn sub(self, rhs: &'b Matrix) -> Matrix {
+        self.broadcast_op(rhs, MatrixOp::Sub)
+    }
+}
+
+impl<'a, 'b> Mul<&'b Matrix> for &'a Matrix {
+    type Output = Matrix;
+
+    fn mul(self, rhs: &'b Matrix) -> Matrix {
+        self.broadcast_op(rhs, MatrixOp::Mul)
+    }
+}
+
+impl<'a, 'b> Div<&'b Matrix> for &'a Matrix {
+    type Output = Matrix;
+
+    fn div(self, rhs: &'b Matrix) -> Matrix {
+        self.broadcast_op(rhs, MatrixOp::Div)
     }
 }
 
@@ -89,7 +100,6 @@ impl Matrix {
         for i in 0..(self.dims.0 * self.dims.1) {
             self.data[i] = rng.gen_range(low..high);
         }
-        self.transpose();
     }
 
     pub fn get(&self, row: usize, col: usize) -> f32 {
@@ -98,6 +108,36 @@ impl Matrix {
 
     pub fn set(&mut self, row: usize, col: usize, res: f32) {
         self.data[row * self.dims.1 + col] = res;
+    }
+
+    pub fn broadcast_op(&self, other: &Matrix, op: MatrixOp) -> Matrix {
+        if self.dims.0 != other.dims.0 {
+            panic!(
+                "Size mismatch during addition. {} != {}.",
+                self.dims.0, other.dims.0
+            );
+        } else if self.dims.1 != other.dims.1 {
+            panic!(
+                "Size mismatch during addition. {} != {}.",
+                self.dims.1, other.dims.1
+            );
+        }
+        let result: Vec<f32> = self
+            .data
+            .iter()
+            .zip(other.data.iter())
+            .map(|(a, b)| match op {
+                MatrixOp::Add => a + b,
+                MatrixOp::Sub => a - b,
+                MatrixOp::Mul => a * b,
+                MatrixOp::Div => a / b,
+            })
+            .collect();
+
+        Matrix {
+            dims: (self.dims.0, self.dims.1),
+            data: result,
+        }
     }
 
     pub fn mul(&self, other: &Matrix) -> Matrix {
@@ -147,11 +187,13 @@ fn main() {
 
     a.init_uniform(-1.0, 1.0);
 
-    let c = &a + &b;
+    let c = &a - &b;
+    let d = a.mul(&b.transpose());
 
     // let d = a.mul(&c);
 
     print!("{}", a);
     print!("{}", b);
     print!("{}", c);
+    print!("{}", d);
 }
