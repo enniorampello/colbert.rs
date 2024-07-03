@@ -140,6 +140,16 @@ impl Matrix {
         }
     }
 
+    pub fn apply_fn<F>(&self, f: F) -> Matrix
+    where
+        F: Fn(f32) -> f32,
+    {
+        Matrix {
+            dims: (self.dims.0, self.dims.1),
+            data: self.data.iter().cloned().map(f).collect(),
+        }
+    }
+
     pub fn mul(&self, other: &Matrix) -> Matrix {
         if self.dims.1 != other.dims.0 {
             panic!(
@@ -184,16 +194,18 @@ impl Matrix {
 fn main() {
     let mut a = Matrix::new(3, 2);
     let b = Matrix::new(3, 2);
+    let sq = |n: f32| n.powi(2);
 
     a.init_uniform(-1.0, 1.0);
 
     let c = &a - &b;
     let d = a.mul(&b.transpose());
-
+    let e = c.apply_fn(sq);
     // let d = a.mul(&c);
 
     print!("{}", a);
     print!("{}", b);
     print!("{}", c);
     print!("{}", d);
+    print!("{}", e);
 }
