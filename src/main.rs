@@ -1,10 +1,10 @@
-use crate::layer::Layer;
+use crate::matrix::Matrix;
 
-pub mod layer;
+pub mod matrix;
 
 fn main() {
-    let mut a = Layer::new(3, 2);
-    let b = Layer::new(3, 2);
+    let mut a = Matrix::new(3, 2);
+    let b = Matrix::new(3, 2);
     let sq = |n: f32| n.powi(2);
 
     a.init_uniform(-1.0, 1.0);
